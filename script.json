@@ -1,10 +1,6 @@
-let contract = null;
+const Web3 = require('web3');
+const web3 = new Web3(window.ethereum);
 
-async function loadContract() {
-    contract = new web3.eth.Contract(abi, contractAddress);
-}
-
-// ... Rest of the code remains the same
 
 const contractAddress = "0xe375cd1e3d4Ef137E25B176DC89831b8f66D4Bd7"; // Replace with the actual contract address
 const abi = [
@@ -231,49 +227,67 @@ const abi = [
 		"type": "function"
 	}
 ]; // Replace with the actual ABI of your contract
-const web3 = new Web3(window.ethereum);
+const contract = new web3.eth.Contract(contractABI, contractAddress);
 
-let contract;
-
-async function loadContract() {
-    contract = new web3.eth.Contract(abi, contractAddress);
-}
-
-async function play() {
-    const move = document.getElementById("move").value;
-
-    // Request account access
-    await window.ethereum.request({ method: 'eth_requestAccounts' });
-
-    // TODO: Call the play function in the smart contract using web3.js
-    // Example:
-    // await contract.methods.play(move).send({ from: web3.currentProvider.selectedAddress });
-    
-    // Update game history in the UI (you need to fetch this from the smart contract)
-    const historyList = document.getElementById("history-list");
-    const newItem = document.createElement("li");
-    newItem.textContent = "You played: " + getMoveName(move);
-    historyList.appendChild(newItem);
-}
-
-function getMoveName(move) {
-    const moves = ["Rock", "Paper", "Scissors"];
-    return moves[move];
-}
-
-window.addEventListener('load', async () => {
-    // Modern dapp browsers...
-    if (window.ethereum) {
-        try {
-            // Request account access if needed
-            await window.ethereum.enable();
-
-            // Load the contract
-            await loadContract();
-        } catch (error) {
-            console.error('User denied account access or an error occurred:', error);
-        }
-    } else {
-        console.error('Non-Ethereum browser detected. You should consider trying MetaMask!');
+// Function to start a new game
+async function startGame(movePlayer1) {
+    try {
+        const accounts = await web3.eth.getAccounts();
+        const hashedMovePlayer1 = web3.utils.soliditySha3(movePlayer1);
+        const gas = await contract.methods.createGame(hashedMovePlayer1).estimateGas();
+        const tx = await contract.methods.createGame(hashedMovePlayer1).send({
+            from: accounts[0],
+            gas: gas,
+            value: web3.utils.toWei("0.0001", "ether") // 0.0001 tBNB
+        });
+        console.log("Transaction Hash:", tx.transactionHash);
+    } catch (error) {
+        console.error("Error:", error);
     }
-});
+}
+
+// Function to join an existing game
+async function joinGame(player1Address, movePlayer2) {
+    try {
+        const accounts = await web3.eth.getAccounts();
+        const gas = await contract.methods.joinGame(player1Address, movePlayer2).estimateGas();
+        const tx = await contract.methods.joinGame(player1Address, movePlayer2).send({
+            from: accounts[0],
+            gas: gas,
+            value: web3.utils.toWei("0.0001", "ether") // 0.0001 tBNB
+        });
+        console.log("Transaction Hash:", tx.transactionHash);
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
+
+// Function to reveal the move and determine the outcome
+async function revealMove(movePlayer1, clearMovePlayer1) {
+    try {
+        const accounts = await web3.eth.getAccounts();
+        const gas = await contract.methods.revealMove(movePlayer1, clearMovePlayer1).estimateGas();
+        const tx = await contract.methods.revealMove(movePlayer1, clearMovePlayer1).send({
+            from: accounts[0],
+            gas: gas
+        });
+        console.log("Transaction Hash:", tx.transactionHash);
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
+
+// Function to withdraw funds
+async function withdrawFunds() {
+    try {
+        const accounts = await web3.eth.getAccounts();
+        const gas = await contract.methods.withdraw().estimateGas();
+        const tx = await contract.methods.withdraw().send({
+            from: accounts[0],
+            gas: gas
+        });
+        console.log("Transaction Hash:", tx.transactionHash);
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
